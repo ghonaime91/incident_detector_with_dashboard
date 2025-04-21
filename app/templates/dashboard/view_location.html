@@ -1,0 +1,28 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Location View{% endblock %}
+
+{% block content %}
+<main class="content1">
+    <div id="map" style="height: 500px; border-radius: 12px; margin-top: 2rem;"></div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+<script>
+    const lat = {{ lat }};
+    const lon = {{ lon }};
+    const map = L.map('map').setView([lat, lon], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    L.marker([lat, lon]).addTo(map)
+        .bindPopup("Incident Location")
+        .openPopup();
+</script>
+{% endblock %}

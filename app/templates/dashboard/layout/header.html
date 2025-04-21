@@ -1,0 +1,33 @@
+<header class="top-bar">
+    <div class="left-section">
+
+        <div class="language">
+            <img src="{{ url_for('static', filename='images/sa.png') }}" alt="Saudi Flag" width="20"> Arabic
+        </div>
+
+        <div class="notification-wrapper">
+            <div class="notification-icon" id="notificationBtn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-count" id="notifCount">0</span>
+            </div>
+          
+            <div class="notification-dropdown hidden" id="notifDropdown">
+                <div class="notification-header">New Incidents</div>
+                <ul class="notification-list" id="notifList">
+
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-left: 20px;">
+            <i class="fas fa-moon " style="color: red;"></i>
+
+            <span>{{ current_user.name }} </span>
+        </div>
+        <input type="text" placeholder="Search" class="search-input">
+    </div>
+
+    <div class="logo">
+      <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="SAQR Logo" width="50">
+    </div>
+</header>

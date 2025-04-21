@@ -1,0 +1,15 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Media View{% endblock %}
+
+{% block content %}
+<main class="content1">
+    <div style="width: 56rem;">
+        <h2 style="margin-bottom: 0.75rem;">Incident Video</h2>
+        <video controls style="width: 100%; max-width: 900px;height: 40rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+            <source src="{{ url_for('uploads', filename=incident.media_link) }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+</main>
+{% endblock %}

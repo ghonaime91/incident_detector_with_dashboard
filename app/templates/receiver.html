@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Emergency Call</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f4f8;
+            padding-top: 50px;
+            padding-bottom: 3rem;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .card-header {
+            background-color: #28a745;
+            color: white;
+            text-align: center;
+        }
+        .card-body {
+            background-color: #ffffff;
+            text-align: center;
+        }
+        .video-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        #remoteVideo {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border: 3px solid #28a745;
+            border-radius: 8px;
+          }
+        #localVideo {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border: 3px solid #007bff;
+            border-radius: 8px;
+            display: none; 
+        }
+        .buttons-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #endCallBtn {
+            display: inline-block;
+            margin: 10px 0 10px 5px;
+            background-color: #dc3545;
+            color: white;
+        }
+        #callStatus {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            color: #28a745;
+        }
+        .hide {
+            display: none;
+        }
+        #acceptCallBtn {
+            background-color: #007bff;
+            color: white;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h3>🚨 Emergency Call Incoming 🚨</h3>
+            </div>
+            <div class="card-body">
+                <h5>Waiting for the paramedic...</h5>
+
+                <div class="video-container">
+                    <video id="remoteVideo" autoplay></video>
+                </div>
+
+                <div class="video-container" style="display: none;">
+                    <video id="localVideo" autoplay muted></video>
+                </div>
+
+                <div class="buttons-container">
+                    <button id="acceptCallBtn" class="btn btn-primary hide" >Accept Call</button>
+                    <button id="endCallBtn" class="btn btn-danger hide">End Call</button>
+                </div>
+
+                <div id="callStatus" class="hide">
+                    Waiting for the caller...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+    <script>
+        let acceptCallBtn = document.getElementById('acceptCallBtn');
+        let endCallBtn = document.getElementById('endCallBtn');
+        let remoteVideo = document.getElementById('remoteVideo');
+        let localVideo = document.getElementById('localVideo');
+        let callStatus = document.getElementById('callStatus');
+
+        //  Connect to the server via Socket.IO
+        let socket = io.connect(location.origin);
+        const callRoomId = 'emergency_room'; // نفس معرف الغرفة
+        console.log('(Receive) Connecting to Socket.IO...');
+
+        // Variables for Peer Connection
+        let peerConnection;
+        let remoteStream;
+        let localStream;
+        // ICE Servers Configuration
+        let receivedIceCandidates = []; 
+
+        // ICE Servers
+        const iceConfiguration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+            ]
+        };
+
+        // When connected to the server
+        socket.on('connect', function() {
+            console.log('(Receive) Connected to the server');
+            socket.emit('join_call_room', callRoomId); 
+           // When receiving an offer from the incoming call
+            console.log('(Receive) Joined room:', callRoomId);
+        });
+
+        // Create RTCPeerConnection
+        socket.on('offer', function (data) {
+            console.log("(Receive) Received offer:", data);
+            callStatus.textContent = "Emergency call incoming...";
+            callStatus.classList.remove('hide');
+            acceptCallBtn.classList.remove('hide'); 
+
+            const offer = data.offer;
+
+            // Create RTCPeerConnection
+            peerConnection = new RTCPeerConnection(iceConfiguration);
+            console.log('(Receive) PeerConnection created.');
+
+            peerConnection.onicecandidate = function (event) {
+                if (event.candidate) {
+                    console.log("(Receive) Sending ICE candidate:", event.candidate);
+                    socket.emit('ice-candidate', { room_id: callRoomId, candidate: event.candidate });
+                }
+            };
+
+            peerConnection.ontrack = function (event) {
+                if (event.streams && event.streams[0]) {
+                    remoteStream = event.streams[0];
+                    remoteVideo.srcObject = remoteStream;
+                    console.log("(Receive) Remote stream received.");
+                    callStatus.classList.add('hide');
+                    acceptCallBtn.classList.add('hide');
+                    endCallBtn.classList.remove('hide');
+                }
+            };
+
+            // Monitor ICE connection state
+            peerConnection.oniceconnectionstatechange = function() {
+                console.log(`(Receive) ICE Connection State: ${peerConnection.iceConnectionState}`);
+            };
+
+            // Monitor signaling state
+            peerConnection.onsignalingstatechange = function() {
+                console.log(`(Receive) Signaling State: ${peerConnection.signalingState}`);
+            };
+
+            // Accept call function
+            function acceptCall() {
+                console.log("(Receive) Call accepted by button.");
+                acceptCallBtn.classList.add('hide');
+                callStatus.textContent = "Connecting to caller...";
+                endCallBtn.classList.remove('hide'); // إظهار زر إنهاء المكالمة
+
+                // Handle local video and sound
+                navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    .then(function (stream) {
+                        console.log("(Receive) Local media stream started.");
+                        localStream = stream;
+                        localVideo.srcObject = stream;
+                        // Show video div
+                        localVideo.style.display = "block"; 
+
+                       // Add local tracks to the PeerConnection
+                        stream.getTracks().forEach(track => {
+                            peerConnection.addTrack(track, stream);
+                            console.log('(Receive) Added local track:', track.kind);
+                        });
+
+                        // Remote Description
+                        return peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                    })
+                    .then(() => {
+                        console.log('(Receive) Remote description set successfully.');
+                        // Create an answer
+                        return peerConnection.createAnswer();
+                    })
+                    .then(answer => {
+                        console.log("(Receive) Sending answer:", answer);
+                        return peerConnection.setLocalDescription(answer);
+                    })
+                    .then(() => {
+                        console.log('(Receive) Local description set successfully.');
+                        // Send the answer via Socket.IO with room id
+                        socket.emit('answer', { room_id: callRoomId, answer: peerConnection.localDescription });
+                    })
+                    .catch(error => {
+                        console.error("(Receive) Error handling offer:", error);
+                    });
+            }
+
+            // "Accept Call"
+            acceptCallBtn.onclick = acceptCall;
+        });
+
+        // When Accepting ICE candidate from others
+        socket.on('ice-candidate', function (data) {
+            if (peerConnection && data.candidate) {
+                console.log("(Receive) Received ICE candidate:", data.candidate);
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+                    .catch(error => {
+                        console.error("(Receive) Error adding ICE candidate:", error);
+                    });
+            } else {
+                console.log("(Receive) Received ICE candidate but no peer connection yet.");
+            }
+        });
+
+        // When click on end call button
+        endCallBtn.addEventListener('click', function () {
+            console.log("(Receive) Call ended by receiver.");
+            endCall();
+        });
+
+        function endCall() {
+            console.log("(Receive) Ending the call.");
+            socket.emit('leave_call_room', callRoomId); 
+            if (peerConnection) {
+                peerConnection.close();
+                remoteVideo.srcObject = null;
+                localVideo.srcObject = null;
+                peerConnection = null;
+                console.log('(Receive) PeerConnection closed.');
+            }
+            endCallBtn.classList.add('hide');
+            callStatus.textContent = "Call Ended";
+            callStatus.classList.remove('hide');
+            acceptCallBtn.classList.add('hide');
+            peerConnection = new RTCPeerConnection(iceConfiguration); 
+            console.log("(Receive) PeerConnection reinitialized.");
+        }
+
+        // Handle call ended event from server
+        socket.on('call_ended', function () {
+            console.log("(Receive) Call ended by the other party");
+            endCall();
+        });
+    </script>
+</body>
+</html>

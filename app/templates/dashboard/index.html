@@ -1,0 +1,158 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<main class="content">
+    <h1><br>INCIDENT VIEW</h1>
+
+    <!-- Blue Box -->
+    <div class="blue-box">
+        <!-- Table with White Background -->
+        <div class="table-container">
+            <table id="incidentTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>DATE</th>
+                        <th>ADDRESS</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody id="incidentTableBody">
+                    {% for incident in incidents %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('incident_response', incident_id=incident.id) }}">
+                                {{ incident.id }}
+                            </a>
+                        </td>
+                        <td>{{ incident.date.strftime('%d/%m/%Y') }}</td>
+
+                        <td>
+                            {% if incident.location_name %}
+                                {{ incident.location_name }}
+                            {% else %}
+                                {% set parts = incident.address.split(', ') %}
+                                {% set latitude = parts[0].split(': ')[1] %}
+                                {% set longitude = parts[1].split(': ')[1] %}
+                                Lat: {{ latitude }}, Lon: {{ longitude }}
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <span class="status-label {{ incident.status|lower|replace(' ', '-') }}">
+                                {{ incident.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="paginationn">
+                {% if pagination_info.has_prev %}
+                <a href="?page={{ pagination_info.current_page - 1 }}">&#60; Previous</a>
+                {% else %}
+                <span>&#60; Previous</span>
+                {% endif %}
+
+                <span>Page {{ pagination_info.current_page }} of {{ pagination_info.pages }}</span>
+
+                {% if pagination_info.has_next %}
+                <a href="?page={{ pagination_info.current_page + 1 }}">Next &#62;</a>
+                {% else %}
+                <span>Next &#62;</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Pie Chart Section -->
+        <div class="pie-chart-section">
+            <div class="pie-chart-container">
+                <canvas id="pieChart"></canvas>
+            </div>
+
+            <div class="pie-chart-labels">
+                <div class="label-item new">
+                    <div class="color-indicator" style="background-color: #F4E3E5;"></div>
+                    <span>New: {{ new_count }}</span>
+                </div>
+                <div class="label-item in-progress">
+                    <div class="color-indicator" style="background-color: #E3ECF1;"></div>
+                    <span>In Progress: {{ in_progress_count }}</span>
+                </div>
+                <div class="label-item closed">
+                    <div class="color-indicator" style="background-color: #E1DFA4;"></div>
+                    <span>Closed: {{ closed_count }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three Boxes -->
+    <div class="boxes">
+        <div class="box new-reports">
+            <h3>New Reports</h3>
+            <ul id="checkboxList">
+                {% for incident in latest_incidents %}
+                <li>
+                    <input type="checkbox" 
+                           id="report{{ loop.index }}" 
+                           data-id="{{ incident.id }}" 
+                           onchange="handleCheckboxChange(this)">
+                    <label for="report{{ loop.index }}">Report {{ incident.id }}</label>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="box incident-response" onclick="window.location.href='{{ url_for('incident_response', incident_id=latest_incident_id) }}'">
+            <h3>Incident Response</h3>
+        </div>
+        <div class="box incident-log" onclick="window.location.href='{{ url_for('incident_log') }}'">
+            <h3>Incident Log</h3>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    const pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            datasets: [{
+                data: [{{ new_count }}, {{ in_progress_count }}, {{ closed_count }}],
+                backgroundColor: ['#F4E3E5', '#E3ECF1', '#E1DFA4']
+            }],
+            labels: ['New', 'In Progress', 'Closed']
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    function handleCheckboxChange(checkbox) {
+        if (checkbox.checked) {
+            const incidentId = checkbox.getAttribute('data-id');
+
+            fetch(`/update-status/${incidentId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ "confirmed": true })  // إرسال بيانات الـ JSON
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+            });
+        }
+    }
+</script>
+{% endblock %}

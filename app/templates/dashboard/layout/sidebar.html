@@ -1,0 +1,23 @@
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <img src="{{ url_for('static', filename='images/saqr22.png') }}" alt="SAQR Logo" width="50">
+    </div>
+    <div class="emergency-center">
+        <img src="{{ url_for('static', filename='images/gg.png') }}" alt="Emergency Center" width="50">
+    </div>
+    <ul class="nav-links">
+        <li><a href="{{ url_for('index') }}" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+        <li>
+            <a href="{{ url_for('incident_response', incident_id=latest_incident_id) }}">
+              <i class="fas fa-ambulance"></i> Incident Response
+            </a>
+          </li>
+        <li><a href="{{ url_for('incident_log') }}"><i class="fas fa-list"></i> Incident Log</a></li>
+    </ul>
+ 
+
+    <div class="logout">
+        <a href="{{ url_for('logout') }}">
+            <i class="fas fa-sign-out-alt"></i> Log Out</a>
+    </div>
+</aside>

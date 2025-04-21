@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .error-container {
+            max-width: 600px;
+        }
+        .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background-color: #dc3545;
+            color: white;
+            text-align: center;
+            font-size: 1.5rem;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+        }
+        .card-body {
+            text-align: center;
+            padding: 2rem;
+        }
+        .btn-home {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="card">
+            <div class="card-header">
+                {% block error_code %}{% endblock %}
+            </div>
+            <div class="card-body">
+                <p>{% block error_message %}{% endblock %}</p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-home">Back to Home</a>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

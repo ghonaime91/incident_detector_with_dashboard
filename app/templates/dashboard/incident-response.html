@@ -1,0 +1,156 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Incident Response{% endblock %}
+
+{% block content %}
+<main class="content1">
+    <!-- Blue Box -->
+    <div class="blue-box">
+        <div class="box-title">
+            <h2>Incident View</h2>
+        </div>
+        <!-- Incident Details -->
+        <div class="incident-details">
+            <div class="image-container">
+                <img src="{{ url_for('static', filename='images/man.png') }}" alt="">
+            </div>
+            
+            <div class="media-buttons">
+                <button class="media-button camera" id="camera_btn">
+                    <i class="fas fa-camera"></i>
+                </button>
+                <button class="media-button microphone">
+                    <i class="fas fa-microphone"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+<!-- Responder Notes (Bottom White Box) -->
+<div class="responder-notes white-box">
+    <h2>Responder Notes</h2>
+<!-- incident_form.html -->
+<form method="POST" action="{{ url_for('submit_response', incident_id=incident.id) }}" class="incident-form">
+    <div class="note-section">
+        <label for="response_type">Response Type:</label>
+        <input type="text" id="response_type" name="response_type" value="{{ details.response_type if details else '' }}">
+    </div>
+
+    <div class="note-section">
+        <label for="injury_status">Injury Status:</label>
+        <input type="text" id="injury_status" name="injury_status" value="{{ details.injury_status if details else '' }}">
+    </div>
+
+    <div class="note-section">
+        <label for="injured_count">Number of Injured:</label>
+        <input type="number" id="injured_count" name="injured_count" value="{{ details.injured_count if details else '' }}">
+    </div>
+
+    <div class="note-section">
+        <label for="incident_description">Incident Description:</label>
+        <textarea id="incident_description" name="incident_description">{{ details.incident_description if details else '' }}</textarea>
+    </div>
+
+    <div class="note-section">
+        <label for="vehicle_count">Number of Vehicles Involved:</label>
+        <input type="number" id="vehicle_count" name="vehicle_count" value="{{ details.vehicle_count if details else '' }}">
+    </div>
+
+    <div class="buttons-row">
+        <button type="submit" class="submit-btn save">Save</button>
+        <a href="{{ url_for('delete_response', incident_id=incident.id) }}" onclick="return confirm('Are you sure you want to delete the response details?');" class="submit-btn delete">Delete</a>
+    </div>
+</form>
+
+   
+</div>
+
+
+
+
+</main>
+
+<!-- System Data (Right Sidebar) -->
+<aside class="system-data">
+    <h2>System Data</h2>
+    <!-- Service Time -->
+    <div class="service-time">
+        <img src="{{ url_for('static', filename='images/service-time-circle.png') }}" alt="Service Time Circle" style="width: 150px;">
+        <p id="serviceTime">0d</p>
+    </div>
+
+    <!-- Incident Details -->
+    <div class="incident-details">
+        <div class="details-box">
+            <h3>Incident Details</h3>
+            <p>Date of Incident: <span id="incidentDate">{{ incident.date.strftime('%d %B %Y') }}</span></p>
+            <p>Time of Incident: <span id="incidentTime"></span>{{ incident.time.strftime('%H:%M') }}</p>
+        </div>
+    </div>
+       
+    <div class="live-connect-media">
+        <button class="live-connect" onclick="window.location.href='{{url_for('call')}}'">
+            <i class="fas fa-video"></i> 
+        </button>
+        <h3>Live Connect</h3>  
+    </div>  
+
+    <!-- Media -->
+    <div class="Media">
+        <a href="{{url_for('view_media',incident_id=incident.id)}}" class="Media-button">
+            <img src="{{ url_for('static', filename='images/car.png') }}" alt="Media" style="width: 90%;">
+            <h3>Media</h3>
+        </a>
+    </div>
+
+    <!-- Location -->
+    <div class="location">
+        <a href="{{ url_for('view_location', incident_id=incident.id) }}" class="location-button">
+            <img src="{{ url_for('static', filename='images/Location.png') }}" alt="Location Map" style="width: 90%;">
+            <h3>Location</h3>
+        </a>
+    </div>
+</aside>
+
+
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+
+    document.getElementById('camera_btn').addEventListener('click',()=>{
+        window.location.href = "{{url_for('call')}}";
+    })
+
+
+ const incidentDate = "{{ incident.date.isoformat() }}"; 
+    const incidentTime = "{{ incident.time.isoformat() }}";  
+
+ 
+    const incidentStartTime = new Date(`${incidentDate}T${incidentTime}`);
+
+    function updateServiceTime() {
+        const currentTime = new Date();
+        const timeDifference = currentTime - incidentStartTime;
+
+        const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
+
+        let formattedTime = '';
+        if (days > 0) formattedTime += `${days}d `;
+        if (hours > 0 || days > 0) formattedTime += `${hours}h `;
+        if (minutes > 0 || hours > 0 || days > 0) formattedTime += `${minutes}m `;
+        formattedTime += `${seconds}s`;
+
+        document.getElementById('serviceTime').textContent = formattedTime;
+    }
+
+    setInterval(updateServiceTime, 1000);
+    updateServiceTime();
+</script>
+
+
+{% endblock %}

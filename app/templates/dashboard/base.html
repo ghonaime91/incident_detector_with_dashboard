@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    {% include 'dashboard/layout/header.html' %}
+    {% include 'dashboard/layout/sidebar.html' %}
+
+    <div id="toast" class="toast hidden">
+        New incident reported!
+    </div>
+        {% block content %}{% endblock %}
+
+
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

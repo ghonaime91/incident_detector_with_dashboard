@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accident Detection</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 50px;
+            padding-bottom: 3rem;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+        }
+        .card-body {
+            background-color: #ffffff;
+        }
+        .result {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .spinner {
+            display: none;
+            margin: 0 auto;
+        }
+        .hide {
+            display: none;
+        }
+        .buttons-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        #map {
+            height: 400px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header text-center">
+                <h3>🚗 Accident Detection System 🚗</h3>
+            </div>
+            <div class="card-body">
+                <h5 class="text-center mb-4">Upload a Video to Check for Accidents</h5>
+                <form action="{{url_for('predict')}}" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-3">
+                        <label for="video" class="form-label">Select a Video</label>
+                        <input type="file" class="form-control" id="video" name="video" accept="video/*" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Your Location</label>
+                        <div id="map"></div>
+                    </div>
+                    <input type="hidden" id="latitude" name="latitude">
+                    <input type="hidden" id="longitude" name="longitude">
+                    <button type="submit" class="btn btn-primary w-100">Upload & Analyze</button>
+                </form>
+
+                <!-- Loading Spinner -->
+                <div class="text-center mt-4 spinner" id="spinner">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Analyzing Video...</p>
+                </div>
+
+                <!-- Display result here -->
+                <div id="resultDiv" class="mt-4 hide">
+                    {% if result %}
+                    <div class="alert alert-info text-center result">
+                        <p>{{ result.message }}</p>
+                    </div>
+                    {% if result.code == 1 %}
+                    <div id="countdownText" class="text-center text-danger fw-bold" style="font-size: 1.2rem;"></div>
+                    <div class="buttons-container">
+                        <form method="POST" action="{{url_for('send_alert')}}" id="alertForm">
+                            <input type="hidden" id="alertLatitude" name="latitude" value="{{ latitude }}">
+                            <input type="hidden" id="alertLongitude" name="longitude" value="{{ longitude }}">
+                            <input type="hidden" name="video_filename" value="{{ video_filename }}">  <!-- Add video filename here -->
+                            <button type="submit" class="btn btn-danger">Send Emergency Alert</button>
+                        </form>
+                        <a href="{{ url_for('cancel') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                    {% elif result.code == 0 %}
+                    <a href="{{ url_for('cancel') }}" class="btn btn-secondary">Cancel</a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        // Show the spinner when the form is submitted
+        const form = document.getElementById('uploadForm');
+        const spinner = document.getElementById('spinner');
+        const resultDiv = document.getElementById('resultDiv');
+        const alertForm = document.getElementById('alertForm');
+        const alertLatitudeInput = document.getElementById('alertLatitude');
+        const alertLongitudeInput = document.getElementById('alertLongitude');
+
+        form.addEventListener('submit', function (e) {
+            // Show spinner and hide result
+            spinner.style.display = 'block';
+            resultDiv.classList.add('hide');
+        });
+
+        // Wait for Flask to process the video and then hide the spinner and show the result
+        window.onload = function() {
+    {% if result %}
+    // Hide the spinner and display the result
+    spinner.style.display = 'none';
+    resultDiv.classList.remove('hide');
+
+    // Show countdown if it's an accident
+    {% if result.code == 1 %}
+    let countdown = 5;
+    const countdownText = document.getElementById('countdownText');
+    countdownText.textContent = `Auto alert in ${countdown} seconds...`;
+
+    const interval = setInterval(function () {
+        countdown--;
+        if (countdown > 0) {
+            countdownText.textContent = `Auto alert in ${countdown} seconds...`;
+        } else {
+            clearInterval(interval);
+            countdownText.textContent = "Sending alert now...";
+            alertForm.submit();
+        }
+    }, 1000);
+    {% endif %}
+    {% endif %}
+}
+
+
+      // Initialize Leaflet map and get current location
+    var map = L.map('map').setView([51.505, -0.09], 13); 
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var currentLatitude = null;
+    var currentLongitude = null;
+
+    // Get the current location of the user
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            currentLatitude = position.coords.latitude;
+            currentLongitude = position.coords.longitude;
+
+            // Set the map to the user's location
+            map.setView([currentLatitude, currentLongitude], 13);
+
+            // Add a draggable marker for the user's location
+            var marker = L.marker([currentLatitude, currentLongitude], { draggable: true }).addTo(map)
+                .bindPopup('Your Location')
+                .openPopup();
+
+            // Update latitude and longitude when the marker is dragged
+            marker.on('dragend', function(event) {
+                var newLat = event.target.getLatLng().lat;
+                var newLon = event.target.getLatLng().lng;
+
+                // Update the hidden input fields with the new coordinates
+                document.getElementById('latitude').value = newLat;
+                document.getElementById('longitude').value = newLon;
+
+                // Optionally, update any other fields or variables that need the new coordinates
+                currentLatitude = newLat;
+                currentLongitude = newLon;
+
+                // Get the location name (you can call a geocoding API here to fetch the address)
+                getLocationName(newLat, newLon, function(locationName) {
+                    console.log("New location:", locationName); // Just for debugging purposes
+                });
+            });
+
+            // Set the initial latitude and longitude hidden fields
+            document.getElementById('latitude').value = currentLatitude;
+            document.getElementById('longitude').value = currentLongitude;
+        });
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+
+    // Function to get location name from lat/lng using Nominatim
+    function getLocationName(latitude, longitude, callback) {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=en`;
+        fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const locationName = data.display_name || `Lat: ${latitude}, Lon: ${longitude}`;
+            callback(locationName);
+        })
+        .catch(error => {
+            console.error('Error fetching location:', error);
+            callback(`Lat: ${latitude}, Lon: ${longitude}`);
+        });
+    }
+    </script>
+</body>
+</html>

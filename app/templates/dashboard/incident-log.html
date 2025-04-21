@@ -1,0 +1,99 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Incident Response{% endblock %}
+
+{% block content %}
+<main class="content">
+    <h1><br>Incident Log</h1>
+
+    <!-- Filters -->
+    <form method="get" class="filters">
+        <div class="filter-item">
+            <i class="fas fa-filter"></i>
+            <label>Filter By</label>
+        </div>
+        <div class="filter-item">
+            <label for="date">Date</label>
+            <select id="date" name="date">
+                <option value="">All Dates</option>
+                <option value="today" {% if request.args.get('date') == 'today' %}selected{% endif %}>Today</option>
+                <option value="this_week" {% if request.args.get('date') == 'this_week' %}selected{% endif %}>This Week</option>
+                <option value="this_month" {% if request.args.get('date') == 'this_month' %}selected{% endif %}>This Month</option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="">All Statuses</option>
+                <option value="new" {% if request.args.get('status') == 'new' %}selected{% endif %}>New</option>
+                <option value="in_progress" {% if request.args.get('status') == 'in_progress' %}selected{% endif %}>In Progress</option>
+                <option value="closed" {% if request.args.get('status') == 'closed' %}selected{% endif %}>Closed</option>
+            </select>
+        </div>
+        <button type="submit" class="apply-filter">
+            <i class="fas fa-filter"></i> Apply
+        </button>
+        <a href="{{ url_for('incident_log') }}" class="reset-filter">
+            <i class="fas fa-sync-alt"></i> Reset Filter
+        </a>
+    </form>
+
+    <!-- Table -->
+    <table class="incident-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>CENTER NAME</th>
+                <th>ADDRESS</th>
+                <th>DATE</th>
+                <th>Media</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for incident in incidents.items %}
+            <tr>
+                <td>{{ "%05d" % incident.id }}</td>
+                <td>
+                    {% if incident.details and incident.details.center %}
+                        {{ incident.details.center.name }}
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </td>
+                <td>{{ incident.location_name or 'N/A' }}</td>
+                <td>{{ incident.date.strftime('%d %b %Y') }}</td>
+                <td>
+                    {% if incident.media_link %}
+                        <a href="{{ url_for('uploads', filename=incident.media_link) }}">
+                            <i class="fas fa-link"></i> Media_{{ "%05d" % incident.id }}
+                        </a>
+                    {% else %}
+                        <span>No Media</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% set args = request.args.to_dict() %}
+    <div class="log-pagination">
+        {% if incidents.has_prev %}
+            <a class="pagination-arrow" href="{{ url_for('incident_log', page=incidents.prev_num, **(args | dict_without('page'))) }}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        {% endif %}
+
+        <span class="pagination-info">Page {{ incidents.page }} of {{ incidents.pages }}</span>
+
+        {% if incidents.has_next %}
+            <a class="pagination-arrow" href="{{ url_for('incident_log', page=incidents.next_num, **(args | dict_without('page'))) }}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}{% endblock %}
