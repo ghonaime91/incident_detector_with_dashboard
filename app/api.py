@@ -104,10 +104,12 @@ def api_incident_response(incident_id):
         "number_of_vehicles_involved": details.vehicle_count\
               if details.vehicle_count else 0, 
         "center_name": details.center.name if details.center else "Unknown",
+        "video_name" : incident.media_link,
         "address": {
             "lat": lat,
             "lon": lon
-        }  # Return the address as a JSON object with lat and lon
+        }
+   
     }
 
     # Return a JSON response with the data

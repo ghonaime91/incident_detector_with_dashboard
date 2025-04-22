@@ -1,13 +1,14 @@
-import json, os, datetime, uuid
+import json, os, datetime, uuid, mimetypes
 from collections import Counter
 from flask import (
     request,
     render_template,
     redirect,
-    send_from_directory,
+    send_file,
     url_for,
     flash,
     session,
+    abort,
     current_app
     )
 from flask_login import login_user, logout_user, login_required, current_user
@@ -161,9 +162,21 @@ def incident_response(incident_id):
         details=details  
     )
 
+
+
 @app.route('/uploads/<path:filename>')
 def uploads(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    if not os.path.exists(filepath):
+        return abort(404)
+
+    mime_type, _ = mimetypes.guess_type(filepath)
+    if mime_type is None:
+        mime_type = 'application/octet-stream'  
+
+    return send_file(filepath, mimetype=mime_type)
+
 
 # Add Or Update Incident details
 @app.route('/submit-response/<int:incident_id>', methods=['POST'])
